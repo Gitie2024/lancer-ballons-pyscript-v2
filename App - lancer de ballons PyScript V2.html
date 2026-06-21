@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lâcher de Ballons - Version Tablette & Mobile</title>
+    
+    <!-- Intégration de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chargement de PyScript Core -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+    <style>
+        input[type="range"]::-webkit-slider-thumb {
+            background-color: #38bdf8;
+            border: 2px solid #ffffff;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            background-color: #38bdf8;
+            border: 2px solid #ffffff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-white font-sans lg:h-screen lg:overflow-hidden flex flex-col">
+
+    <!-- Container Principal Responsif (Adaptation large écran 'lg') -->
+    <div class="flex flex-col lg:flex-row flex-1 h-full w-full overflow-y-auto lg:overflow-hidden">
+        
+        <!-- Panneau de Contrôle Latéral avec Scroll Interne Garanti -->
+        <div id="controlPanel" class="w-full lg:w-96 bg-slate-900 border-b lg:border-b-0 lg:border-r border-blue-900/50 p-4 lg:p-5 flex flex-col gap-4 shrink-0 z-10 overflow-y-auto min-h-0 lg:h-full">
+            
+            <div class="space-y-4">
+                <!-- En-tête -->
+                <div>
+                    <h1 class="text-xl lg:text-2xl font-bold tracking-wide text-white flex items-center gap-2">
+                        <span class="text-sky-400">🎈</span> Lâcher de Ballons
+                    </h1>
+                    <p class="text-[11px] text-sky-300/75 mt-0.5">Modélisation physique 3D & Exportation</p>
+                </div>
+
+                <!-- Grille adaptative des paramètres (2 colonnes sur tablette portrait, 1 sur mobile/desktop) -->
+                <div id="formContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+                    
+                    <!-- Couleur -->
+                    <div class="bg-slate-800/30 p-2.5 rounded-lg border border-blue-900/20">
+                        <label class="block text-xs font-medium text-sky-200 mb-1">Couleur du ballon</label>
+                        <select id="balloonColor" class="w-full bg-slate-800 border border-blue-700/45 rounded-md p-1.5 text-white text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="#3b82f6" selected>Bleu Classique</option>
+                            <option value="#60a5fa">Bleu Clair</option>
+                            <option value="#ffffff">Blanc Pur</option>
+                            <option value="#ef4444">Rouge Éclatant</option>
+                            <option value="#10b981">Vert Émeraude</option>
+                            <option value="#f59e0b">Jaune Doré</option>
+                            <option value="#8b5cf6">Violet Mystique</option>
+                            <option value="#ec4899">Rose Bonbon</option>
+                        </select>
+                    </div>
+
+                    <!-- Trajectoire -->
+                    <div class="bg-slate-800/30 p-2.5 rounded-lg border border-blue-900/20">
+                        <label class="block text-xs font-medium text-sky-200 mb-1">Trajectoire</label>
+                        <select id="balloonTrajectory" class="w-full bg-slate-800 border border-blue-700/45 rounded-md p-1.5 text-white text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="sinueuse" selected>Sinueuse (vent)</option>
+                            <option value="droite">Ascension droite</option>
+                            <option value="chaotique">Ascension chaotique</option>
+                        </select>
+                    </div>
+
+                    <!-- Taille -->
+                    <div class="bg-slate-800/30 p-2.5 rounded-lg border border-blue-900/20">
+                        <div class="flex justify-between text-[11px] text-sky-200 mb-1">
+                            <span>Taille nominale</span>
+                            <span id="sizeVal" class="text-sky-400 font-semibold">25 px</span>
+                        </div>
+                        <input type="range" id="balloonSize" min="15" max="40" value="25" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-400">
+                    </div>
+
+                    <!-- Vitesse -->
+                    <div class="bg-slate-800/30 p-2.5 rounded-lg border border-blue-900/20">
+                        <div class="flex justify-between text-[11px] text-sky-200 mb-1">
+                            <span>Vitesse du vent (m/s)</span>
+                            <span id="speedVal" class="text-sky-400 font-semibold">3.0 m/s</span>
+                        </div>
+                        <input type="range" id="balloonSpeed" min="1" max="8" value="3" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-400">
+                    </div>
+
+                    <!-- Durée de vie -->
+                    <div class="bg-slate-800/30 p-2.5 rounded-lg border border-blue-900/20 sm:col-span-2 lg:col-span-1">
+                        <div class="flex justify-between text-[11px] text-sky-200 mb-1">
+                            <span>Durée de présence</span>
+                            <span id="durationVal" class="text-sky-400 font-semibold">12 s</span>
+                        </div>
+                        <input type="range" id="balloonDuration" min="3" max="25" value="12" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-400">
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Commandes et Actions (Boutons unifiés et scrollables) -->
+            <div class="space-y-2 mt-auto pt-3 border-t border-blue-950">
+                
+                <div class="grid grid-cols-2 lg:grid-cols-1 gap-2">
+                    <button id="launchBtn" class="bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-semibold py-2 px-3 rounded-lg shadow-md transition-all active:scale-95 text-xs">
+                        Lancer !
+                    </button>
+                    <button id="autoLaunchBtn" class="bg-slate-850 border border-blue-900 hover:bg-slate-800 text-sky-300 py-2 px-3 rounded-lg transition-all text-[11px]">
+                        Auto : Off
+                    </button>
+                </div>
+                
+                <button id="exportBtn" class="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-bold py-2 px-4 rounded-lg shadow-md transition-all active:scale-95 text-xs">
+                    🛑 Arrêter & Exporter CSV
+                </button>
+
+                <button id="resetBtn" class="hidden w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg text-[11px] transition-all">
+                    🔄 Réinitialiser
+                </button>
+                
+                <div class="bg-slate-950/50 border border-blue-950/80 rounded-md p-1.5 text-center text-[11px] text-sky-200/80 flex justify-between items-center">
+                    <span>Ballons en vol :</span>
+                    <span id="balloonCount" class="text-xs font-bold text-sky-400">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone du ciel (Hauteur minimale fixée sur mobile/tablette verticale, fluide sur grand écran) -->
+        <div class="flex-1 relative bg-slate-950 h-[65vh] lg:h-full w-full shrink-0 lg:shrink">
+            <canvas id="skyCanvas" class="w-full h-full block"></canvas>
+            
+            <div id="viewLabel" class="absolute bottom-4 right-4 bg-slate-900/85 border border-sky-900/50 px-3 py-1.5 rounded-md text-[10px] text-sky-300/80 backdrop-blur-sm pointer-events-none">
+                Espace 3D Temps Réel (Vue frontale)
+            </div>
+        </div>
+    </div>
+
+    <!-- Script logique Python -->
+    <script type="py">
+        import math
+        import random
+        from datetime import datetime
+        import js
+        from pyodide.ffi import create_proxy
+
+        canvas = js.document.getElementById("skyCanvas")
+        ctx = canvas.getContext("2d")
+
+        color_select = js.document.getElementById("balloonColor")
+        size_slider = js.document.getElementById("balloonSize")
+        speed_slider = js.document.getElementById("balloonSpeed")
+        trajectory_select = js.document.getElementById("balloonTrajectory")
+        duration_slider = js.document.getElementById("balloonDuration")
+        
+        size_val_label = js.document.getElementById("sizeVal")
+        speed_val_label = js.document.getElementById("speedVal")
+        duration_val_label = js.document.getElementById("durationVal")
+        count_display = js.document.getElementById("balloonCount")
+
+        launch_btn = js.document.getElementById("launchBtn")
+        auto_launch_btn = js.document.getElementById("autoLaunchBtn")
+        export_btn = js.document.getElementById("exportBtn")
+        reset_btn = js.document.getElementById("resetBtn")
+        view_label = js.document.getElementById("viewLabel")
+
+        balloons = []
+        all_balloons_history = []
+        stars = []
+        
+        spawn_x = 0  
+        spawn_y = 0  
+        
+        auto_launch_enabled = False
+        last_auto_launch_time = 0
+        balloon_id_counter = 0
+
+        t0 = None  
+        simulation_active = True
+        last_second_logged = -1
+
+        class Balloon:
+            def __init__(self, b_id, color, size, speed, trajectory, duration):
+                self.id = b_id
+                self.color = color
+                self.size = float(size)
+                self.speed = float(speed)
+                self.trajectory = trajectory
+                self.duration = float(duration)
+                self.spawn_time = js.Date.now()
+
+                self.x_3d = 5.0    
+                self.y_3d = 0.0    
+                self.z_3d = 15.0   
+
+                self.phase = random.random() * math.pi * 2
+                self.noise_seed = random.random() * 100
+                
+                self.history = []  
+                self.log_state(0.0)
+
+            def log_state(self, current_sim_time):
+                self.history.append({
+                    't': round(current_sim_time),
+                    'x': self.x_3d,
+                    'y': self.y_3d,
+                    'z': self.z_3d
+                })
+
+            def update(self, dt):
+                elapsed = (js.Date.now() - self.spawn_time) / 1000.0
+                if elapsed >= self.duration:
+                    return False
+
+                speed_m_s = self.speed
+
+                if self.trajectory == "droite":
+                    self.x_3d += 1.0 * speed_m_s * dt
+                    self.z_3d += 1.3 * speed_m_s * dt
+                    self.y_3d += math.sin(elapsed * 0.5) * 0.2 * dt
+                elif self.trajectory == "sinueuse":
+                    self.z_3d += 1.4 * speed_m_s * dt
+                    self.x_3d += (1.1 * speed_m_s + math.sin(elapsed * 2.0 + self.phase) * 1.5) * dt
+                    self.y_3d += math.cos(elapsed * 1.5) * 1.2 * dt
+                else: 
+                    self.x_3d += (0.9 * speed_m_s + math.sin(elapsed * 3.5 + self.noise_seed) * 2.0) * dt
+                    self.z_3d += (1.2 * speed_m_s + math.cos(elapsed * 3.0 + self.noise_seed) * 1.5) * dt
+                    self.y_3d += math.sin(elapsed * 4.0) * 2.5 * dt
+
+                self.x_3d = min(50.0, max(0.0, self.x_3d))
+                self.z_3d = min(50.0, max(0.0, self.z_3d))
+                self.y_3d = min(15.0, max(-15.0, self.y_3d))
+
+                return True
+
+            def draw(self, ctx, scale_x, scale_z):
+                depth_ratio = 1.0 - (self.y_3d / 40.0) 
+                rendered_size = self.size * depth_ratio
+
+                screen_x = 35 + (self.x_3d * scale_x)
+                screen_y = canvas.height - (self.z_3d * scale_z)
+
+                ctx.beginPath()
+                ctx.strokeStyle = f"rgba(224, 225, 221, {0.45 * depth_ratio})"
+                ctx.lineWidth = 1.0 * depth_ratio
+                ctx.moveTo(screen_x, screen_y + rendered_size)
+                
+                elapsed = (js.Date.now() - self.spawn_time) / 1000.0
+                wave = math.sin(elapsed * 7.0 + self.phase) * (rendered_size * 0.25)
+                ctx.quadraticCurveTo(
+                    screen_x + wave, screen_y + rendered_size * 1.5,
+                    screen_x, screen_y + rendered_size * 2.6
+                )
+                ctx.stroke()
+
+                ctx.save()
+                ctx.translate(screen_x, screen_y)
+
+                gradient = ctx.createRadialGradient(
+                    -rendered_size * 0.25, -rendered_size * 0.25, rendered_size * 0.1,
+                    0, 0, rendered_size
+                )
+                gradient.addColorStop(0, "#ffffff")
+                gradient.addColorStop(0.15, self.color)
+                gradient.addColorStop(1, self.darken_hex_color(self.color, 45))
+
+                ctx.fillStyle = gradient
+
+                ctx.beginPath()
+                ctx.moveTo(0, rendered_size)
+                ctx.bezierCurveTo(-rendered_size * 1.15, rendered_size * 0.45, -rendered_size * 1.15, -rendered_size * 0.75, 0, -rendered_size)
+                ctx.bezierCurveTo(rendered_size * 1.15, -rendered_size * 0.75, rendered_size * 1.15, rendered_size * 0.45, 0, rendered_size)
+                ctx.fill()
+
+                ctx.beginPath()
+                ctx.fillStyle = self.color
+                ctx.moveTo(0, rendered_size)
+                ctx.lineTo(-rendered_size * 0.12, rendered_size * 1.12)
+                ctx.lineTo(rendered_size * 0.12, rendered_size * 1.12)
+                ctx.closePath()
+                ctx.fill()
+
+                ctx.restore()
+
+            def darken_hex_color(self, hex_color, percent):
+                try:
+                    hex_color = hex_color.lstrip('#')
+                    if len(hex_color) == 3:
+                        hex_color = "".join([c*2 for c in hex_color])
+                    r = int(hex_color[0:2], 16)
+                    g = int(hex_color[2:4], 16)
+                    b = int(hex_color[4:6], 16)
+                    
+                    r = max(0, int(r * (100 - percent) / 100))
+                    g = max(0, int(g * (100 - percent) / 100))
+                    b = max(0, int(b * (100 - percent) / 100))
+                    return f"#{r:02x}{g:02x}{b:02x}"
+                except:
+                    return hex_color
+
+        def init_stars():
+            stars.clear()
+            w, h = canvas.width, canvas.height
+            for _ in range(70):
+                stars.append({
+                    'x': random.random() * w,
+                    'y': random.random() * h,
+                    'size': random.random() * 1.5 + 0.4,
+                    'alpha': random.random(),
+                    'twinkle_speed': random.random() * 0.03 + 0.01
+                })
+
+        def draw_building(ctx, scale_x, scale_z):
+            global spawn_x, spawn_y
+            
+            b_width_m = 6.0
+            b_height_m = 30.0
+            
+            b_width = b_width_m * scale_x
+            b_height = b_height_m * scale_z
+            b_x = 35             
+            b_y = canvas.height - b_height
+
+            ctx.fillStyle = "#0c1524"
+            ctx.strokeStyle = "#1e293b"
+            ctx.lineWidth = 1.5
+            ctx.fillRect(b_x, b_y, b_width, b_height)
+            ctx.strokeRect(b_x, b_y, b_width, b_height)
+
+            floor_height = b_height / 10.0
+
+            for floor in range(1, 11):
+                y_center = canvas.height - (floor - 0.5) * floor_height
+
+                win_w = b_width * 0.35
+                win_h = floor_height * 0.55
+                win_x = b_x + b_width * 0.5 - win_w / 2
+                win_y = y_center - win_h / 2
+
+                if floor == 5: 
+                    spawn_x = b_x + b_width * 0.5
+                    spawn_y = y_center
+                    
+                    ctx.shadowColor = "rgba(253, 224, 71, 0.7)"
+                    ctx.shadowBlur = 10
+                    ctx.fillStyle = "#fef08a"
+                    ctx.fillRect(win_x, win_y, win_w, win_h)
+                    
+                    ctx.strokeStyle = "#ca8a04"
+                    ctx.lineWidth = 1
+                    ctx.strokeRect(win_x, win_y, win_w, win_h)
+                    ctx.shadowBlur = 0
+                else:
+                    ctx.fillStyle = "rgba(15, 23, 42, 0.8)"
+                    ctx.fillRect(win_x, win_y, win_w, win_h)
+
+        def draw_star_symbol(ctx, cx, cy, spikes, outer, inner, fill_color):
+            rot = math.pi / 2 * 3
+            x = cx
+            y = cy
+            step = math.pi / spikes
+
+            ctx.beginPath()
+            ctx.moveTo(cx, cy - outer)
+            for _ in range(spikes):
+                x = cx + math.cos(rot) * outer
+                y = cy + math.sin(rot) * outer
+                ctx.lineTo(x, y)
+                rot += step
+
+                x = cx + math.cos(rot) * inner
+                y = cy + math.sin(rot) * inner
+                ctx.lineTo(x, y)
+                rot += step
+            ctx.lineTo(cx, cy - outer)
+            ctx.closePath()
+            ctx.fillStyle = fill_color
+            ctx.fill()
+
+        def spawn_new_balloon():
+            global balloon_id_counter, t0
+            if not simulation_active:
+                return
+
+            if t0 is None:
+                t0 = js.Date.now()
+
+            balloon_id_counter += 1
+            color = color_select.value
+            size = size_slider.value
+            speed = float(speed_slider.value)
+            trajectory = trajectory_select.value
+            duration = duration_slider.value
+            
+            b = Balloon(balloon_id_counter, color, size, speed, trajectory, duration)
+            balloons.append(b)
+            all_balloons_history.append(b)
+
+        # Tracé des diagrammes d'analyse
+        def draw_analysis_charts():
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            
+            ctx.fillStyle = "#020617"
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+            w = canvas.width
+            h = canvas.height
+            margin = 55
+
+            # Découpage adaptatif vertical ou horizontal selon l'orientation de l'écran
+            is_vertical = h > w
+            
+            if is_vertical:
+                chart_w = w - margin * 2
+                chart_h = (h - margin * 3.5) / 2
+                
+                draw_individual_chart(
+                    ctx, margin, margin, chart_w, chart_h, 
+                    "Projection Frontale (Z vs X en mètres)", 
+                    "Distance X (m)", "Altitude Z (m)", 50, 50, 0, 'x', 'z'
+                )
+                draw_individual_chart(
+                    ctx, margin, margin * 2 + chart_h, chart_w, chart_h, 
+                    "Projection de Dessus (Y vs X en mètres)", 
+                    "Distance X (m)", "Profondeur Y (m)", 50, 15, -15, 'x', 'y'
+                )
+            else:
+                chart_w = (w - margin * 3) / 2
+                chart_h = h - margin * 2
+                
+                draw_individual_chart(
+                    ctx, margin, margin, chart_w, chart_h, 
+                    "Projection Frontale (Z vs X en mètres)", 
+                    "Distance X (m)", "Altitude Z (m)", 50, 50, 0, 'x', 'z'
+                )
+                draw_individual_chart(
+                    ctx, margin * 2 + chart_w, margin, chart_w, chart_h, 
+                    "Projection de Dessus (Y vs X en mètres)", 
+                    "Distance X (m)", "Profondeur Y (m)", 50, 15, -15, 'x', 'y'
+                )
+
+        def draw_individual_chart(ctx, x_offset, y_offset, width, height, title, x_label, y_label, x_max, y_max, y_min=0, x_prop='x', y_prop='z'):
+            ctx.strokeStyle = "#1e293b"
+            ctx.lineWidth = 1
+            ctx.strokeRect(x_offset, y_offset, width, height)
+
+            ctx.fillStyle = "#ffffff"
+            ctx.font = "bold 11px sans-serif"
+            ctx.fillText(title, x_offset, y_offset - 12)
+
+            ctx.strokeStyle = "#0f172a"
+            steps = 5
+            for i in range(steps + 1):
+                ratio = i / steps
+                lx = x_offset + ratio * width
+                ctx.beginPath()
+                ctx.moveTo(lx, y_offset)
+                ctx.lineTo(lx, y_offset + height)
+                ctx.stroke()
+                
+                label_x = round(ratio * x_max)
+                ctx.fillStyle = "#64748b"
+                ctx.font = "9px sans-serif"
+                ctx.fillText(str(label_x), lx - 5, y_offset + height + 13)
+
+                ly = y_offset + ratio * height
+                ctx.beginPath()
+                ctx.moveTo(x_offset, ly)
+                ctx.lineTo(x_offset + width, ly)
+                ctx.stroke()
+
+                label_y = round(y_max - ratio * (y_max - y_min))
+                ctx.fillText(str(label_y), x_offset - 25, ly + 3)
+
+            ctx.fillStyle = "#94a3b8"
+            ctx.fillText(x_label, x_offset + width/2 - 40, y_offset + height + 28)
+            
+            for b in all_balloons_history:
+                if not b.history:
+                    continue
+                
+                ctx.beginPath()
+                ctx.strokeStyle = b.color
+                ctx.lineWidth = 1.5
+                first = True
+                
+                for point in b.history:
+                    px = point[x_prop]
+                    py = point[y_prop]
+
+                    plot_x = x_offset + (px / x_max) * width
+                    plot_y = y_offset + (1.0 - (py - y_min) / (y_max - y_min)) * height
+
+                    if first:
+                        ctx.moveTo(plot_x, plot_y)
+                        first = False
+                    else:
+                        ctx.lineTo(plot_x, plot_y)
+                ctx.stroke()
+
+                for point in b.history:
+                    px = point[x_prop]
+                    py = point[y_prop]
+
+                    plot_x = x_offset + (px / x_max) * width
+                    plot_y = y_offset + (1.0 - (py - y_min) / (y_max - y_min)) * height
+
+                    ctx.beginPath()
+                    ctx.arc(plot_x, plot_y, 2.5, 0, math.pi * 2)
+                    ctx.fillStyle = "#ffffff"
+                    ctx.fill()
+                    ctx.strokeStyle = b.color
+                    ctx.lineWidth = 1
+                    ctx.stroke()
+
+        def trigger_csv_download():
+            csv_lines = ["Temps_Ecoule_S,Ballon_ID,Position_X_m,Position_Y_m,Position_Z_m"]
+            
+            for b in all_balloons_history:
+                for entry in b.history:
+                    line = f"{entry['t']},{b.id},{entry['x']:.2f},{entry['y']:.2f},{entry['z']:.2f}"
+                    csv_lines.append(line)
+            
+            csv_content = "\n".join(csv_lines)
+            
+            encoded_uri = "data:text/csv;charset=utf-8," + js.encodeURIComponent(csv_content)
+            link = js.document.createElement("a")
+            link.setAttribute("href", encoded_uri)
+            link.setAttribute("download", "trajectoires_ballons_3d.csv")
+            js.document.body.appendChild(link)
+            link.click()
+            js.document.body.removeChild(link)
+
+        def stop_and_export(event):
+            global simulation_active, auto_launch_enabled
+            if not simulation_active:
+                return
+
+            simulation_active = False
+            auto_launch_enabled = False
+            
+            launch_btn.disabled = True
+            auto_launch_btn.disabled = True
+            export_btn.classList.add("hidden")
+            
+            launch_btn.classList.add("opacity-50", "cursor-not-allowed")
+            auto_launch_btn.classList.add("opacity-50", "cursor-not-allowed")
+            js.document.getElementById("formContainer").classList.add("opacity-40", "pointer-events-none")
+            
+            reset_btn.classList.remove("hidden")
+            view_label.innerText = "Diagramme d'Analyse des Trajectoires (Projections 2D)"
+
+            trigger_csv_download()
+            draw_analysis_charts()
+
+        def reset_simulation(event):
+            global balloons, all_balloons_history, balloon_id_counter, t0, simulation_active, last_second_logged
+            balloons.clear()
+            all_balloons_history.clear()
+            balloon_id_counter = 0
+            t0 = None
+            simulation_active = True
+            last_second_logged = -1
+
+            launch_btn.disabled = False
+            auto_launch_btn.disabled = False
+            launch_btn.classList.remove("opacity-50", "cursor-not-allowed")
+            auto_launch_btn.classList.remove("opacity-50", "cursor-not-allowed")
+            js.document.getElementById("formContainer").classList.remove("opacity-40", "pointer-events-none")
+            
+            auto_launch_btn.innerText = "Auto : Off"
+            auto_launch_btn.classList.remove("bg-sky-950", "text-sky-300", "border-sky-400")
+            
+            export_btn.classList.remove("hidden")
+            reset_btn.classList.add("hidden")
+            view_label.innerText = "Espace 3D Temps Réel (Vue frontale)"
+
+            on_resize()
+
+        def on_launch_click(event):
+            spawn_new_balloon()
+
+        def toggle_auto_launch(event):
+            global auto_launch_enabled
+            if not simulation_active:
+                return
+            auto_launch_enabled = not auto_launch_enabled
+            if auto_launch_enabled:
+                auto_launch_btn.innerText = "Auto : On"
+                auto_launch_btn.classList.add("bg-sky-950", "text-sky-300", "border-sky-400")
+            else:
+                auto_launch_btn.innerText = "Auto : Off"
+                auto_launch_btn.classList.remove("bg-sky-950", "text-sky-300", "border-sky-400")
+
+        def update_labels():
+            size_val_label.innerText = f"{size_slider.value} px"
+            speed_val_label.innerText = f"{float(speed_slider.value):.1f} m/s"
+            duration_val_label.innerText = f"{duration_slider.value} s"
+
+        launch_proxy = create_proxy(on_launch_click)
+        auto_launch_proxy = create_proxy(toggle_auto_launch)
+        export_proxy = create_proxy(stop_and_export)
+        reset_proxy = create_proxy(reset_simulation)
+        
+        launch_btn.addEventListener("click", launch_proxy)
+        auto_launch_btn.addEventListener("click", auto_launch_proxy)
+        export_btn.addEventListener("click", export_proxy)
+        reset_btn.addEventListener("click", reset_proxy)
+
+        def on_resize(event=None):
+            rect = canvas.getBoundingClientRect()
+            canvas.width = rect.width
+            canvas.height = rect.height
+            init_stars()
+            if not simulation_active:
+                draw_analysis_charts()
+
+        resize_proxy = create_proxy(on_resize)
+        js.window.addEventListener("resize", resize_proxy)
+        on_resize()
+
+        last_time = js.Date.now()
+
+        def loop(timestamp):
+            global last_time, last_auto_launch_time, last_second_logged
+            current_time = js.Date.now()
+            dt = (current_time - last_time) / 1000.0
+            last_time = current_time
+
+            update_labels()
+
+            if not simulation_active:
+                return
+
+            if auto_launch_enabled:
+                if current_time - last_auto_launch_time > 800:
+                    spawn_new_balloon()
+                    last_auto_launch_time = current_time
+
+            if t0 is not None:
+                current_sim_time = (current_time - t0) / 1000.0
+                current_second = int(current_sim_time)
+                if current_second > last_second_logged:
+                    for b in balloons:
+                        b.log_state(current_sim_time)
+                    last_second_logged = current_second
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            
+            sky_gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
+            sky_gradient.addColorStop(0, "#020617")
+            sky_gradient.addColorStop(0.5, "#0b1329")
+            sky_gradient.addColorStop(1, "#17153b")
+            ctx.fillStyle = sky_gradient
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+            for s in stars:
+                s['alpha'] += s['twinkle_speed']
+                if s['alpha'] > 1.0 or s['alpha'] < 0.15:
+                    s['twinkle_speed'] = -s['twinkle_speed']
+                ctx.fillStyle = f"rgba(255, 255, 255, {abs(s['alpha'])})"
+                ctx.fillRect(s['x'], s['y'], s['size'], s['size'])
+
+            scale_x = (canvas.width - 70) / 50.0
+            scale_z = canvas.height / 50.0
+
+            draw_building(ctx, scale_x, scale_z)
+
+            active_balloons = []
+            for b in balloons:
+                if b.update(dt):
+                    b.draw(ctx, scale_x, scale_z)
+                    active_balloons.append(b)
+            
+            balloons.clear()
+            balloons.extend(active_balloons)
+            
+            count_display.innerText = str(len(balloons))
+
+            if len(balloons) > 15:
+                blink_alpha = 0.4 + 0.6 * math.sin(js.Date.now() / 100.0)
+                star_color = f"rgba(239, 68, 68, {blink_alpha})"
+                star_x = canvas.width - 50
+                star_y = canvas.height - (canvas.height * 0.40) 
+                draw_star_symbol(ctx, star_x, star_y, 5, 18, 7, star_color)
+
+            js.requestAnimationFrame(loop_proxy)
+
+        loop_proxy = create_proxy(loop)
+        js.requestAnimationFrame(loop_proxy)
+    </script>
+</body>
+</html>
